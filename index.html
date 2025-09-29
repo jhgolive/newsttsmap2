@@ -1,131 +1,63 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<title>뉴스</title>
-<style>
-  body {
-    margin: 0;
-    background: transparent;
-    overflow: hidden;
-  }
-
-  #wrapper {
-    white-space: nowrap;
-    overflow: hidden;
-    position: fixed;
-    top: 0;
-    left: 0;
-    transform: translateY(-8px);
-    width: 100vw;
-    height: 40px;
-    z-index: 9999;
-  }
-
-  #news {
-    display: inline-block;
-    font-size: 28px;
-    color: white;
-    font-weight: bold;
-    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black,
-                 -1px -1px black, -1px 1px black, 1px -1px black, 1px 1px black;
-    will-change: transform;
-    backface-visibility: hidden;
-    position: absolute;
-    top: 0;
-    white-space: nowrap;
-    animation-name: scroll;
-    animation-timing-function: linear;
-    animation-iteration-count: 1;
-  }
-
-  @keyframes scroll {
-    from { transform: translateX(100vw); }
-    to { transform: translateX(-100%); }
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>뉴스 TTS 컨트롤</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      background: #222;
+      color: #fff;
+      margin: 0;
+    }
+    button {
+      padding: 20px 40px;
+      font-size: 24px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      margin: 10px;
+      background-color: #ff5722;
+      color: white;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background-color: #e64a19;
+    }
+  </style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
-<div id="wrapper">
-  <div id="news">뉴스 로딩 중...</div>
-</div>
+  <h1>뉴스 TTS 컨트롤</h1>
+  <button id="playBtn">▶ 뉴스 읽기</button>
 
-<script>
-const newsEl = document.getElementById("news");
-const API_URL = "https://newstts-production-b5a7.up.railway.app/news";
+  <script>
+    // --- Firebase 초기화 ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyAQGtOEcxFxl9FV7NASLgxLDc23u2vzS_0",
+      authDomain: "mygps-11798.firebaseapp.com",
+      databaseURL: "https://mygps-11798-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "mygps-11798",
+      storageBucket: "mygps-11798.firebasestorage.app",
+      messagingSenderId: "271371741627",
+      appId: "1:271371741627:web:642901f43c5ad57d80bc9e"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const ttsRef = db.ref("ttsButton");
 
-let pendingNews = null;
-
-// 🗣 SpeechSynthesis API 설정
-function speakText(text) {
-  // 이전 음성 중지
-  window.speechSynthesis.cancel();
-
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = "ko-KR";  // 한국어 뉴스니까
-  utter.rate = 1.0;      // 속도 (0.5~2.0)
-  utter.pitch = 1.0;     // 피치 (0~2)
-  utter.volume = 1.0;    // 볼륨 (0~1)
-
-  // 브라우저마다 기본 한국어 TTS 음성이 다름
-  const voices = window.speechSynthesis.getVoices();
-  const koreanVoice = voices.find(v => v.lang.startsWith("ko"));
-  if (koreanVoice) {
-    utter.voice = koreanVoice;
-  }
-
-  window.speechSynthesis.speak(utter);
-}
-
-// 뉴스 가져오기
-async function loadNews() {
-  try {
-    const res = await fetch(API_URL);
-    const data = await res.json();
-    if (data.news) {
-      pendingNews = data.news;
-      startScroll(pendingNews);
-      speakText(pendingNews);  // 🔥 텍스트 나오자마자 TTS 실행
-    }
-  } catch (err) {
-    console.error("뉴스 불러오기 실패", err);
-  }
-}
-
-// 스크롤 시작
-function startScroll(text) {
-  newsEl.textContent = text;
-
-  const wrapperWidth = newsEl.parentElement.offsetWidth;
-  const textWidth = newsEl.offsetWidth;
-  const speed = 100; // px/sec
-  const duration = (wrapperWidth + textWidth) / speed;
-
-  newsEl.style.animationDuration = `${duration}s`;
-
-  newsEl.addEventListener("animationend", function handler() {
-    newsEl.removeEventListener("animationend", handler);
-    if (pendingNews) {
-      startScroll(pendingNews);
-      pendingNews = null;
-    }
-    loadNews();
-  });
-
-  // 강제로 애니메이션 재시작
-    newsEl.style.animation = "none";
-    newsEl.offsetHeight; // reflow
-    newsEl.style.animation = `scroll linear ${duration}s 1`;
-}
-
-// 초기 음성 리스트 로딩 (일부 브라우저에서 필수)
-if (speechSynthesis.onvoiceschanged !== undefined) {
-  speechSynthesis.onvoiceschanged = () => {};
-}
-
-// 초기 실행
-loadNews();
-</script>
+    // 버튼 클릭 시 Firebase에 신호 보내기
+    document.getElementById("playBtn").addEventListener("click", () => {
+      ttsRef.set(true);
+      alert("뉴스 TTS 재생 요청 완료!");
+    });
+  </script>
 </body>
 </html>
