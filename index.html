@@ -25,7 +25,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
-  <div id="wrapper">
+  1111<div id="wrapper">
     <div id="news">뉴스 로딩 중...</div>
   </div>
 
@@ -58,15 +58,17 @@
       } catch(e) { console.error("뉴스 불러오기 실패", e); }
     }
     loadNews();
-    setInterval(loadNews, 300000); // 5분마다
+    setInterval(loadNews, 300000);
 
     // --- TTS 재생/정지 ---
     let isSpeaking = false;
     let utter = null;
+    let lastTimestamp = 0; // 마지막으로 처리한 timestamp
 
     ttsRef.on("value", snapshot => {
-      const value = snapshot.val();
-      if (value === true) {
+      const timestamp = snapshot.val();
+      if (timestamp && timestamp > lastTimestamp) {
+        // 새로운 신호이면 처리
         if (!isSpeaking) {
           utter = new SpeechSynthesisUtterance(lastNews);
           utter.lang = "ko-KR";
@@ -78,7 +80,7 @@
           speechSynthesis.cancel();
           isSpeaking = false;
         }
-        ttsRef.set(false); // 클릭 신호 초기화
+        lastTimestamp = timestamp;
       }
     });
   </script>
