@@ -85,7 +85,7 @@ function refreshAddressText() {
   const w = container.offsetWidth;
   let text;
   if (w > 430) text = `${currentAddress.city} ${currentAddress.district} ${currentAddress.neighborhood}`;
-  else if (w > 330) text = `${currentAddress.district} ${currentAddress.neighborhood}`;
+  else if (w > 190) text = `${currentAddress.district} ${currentAddress.neighborhood}`;
   else text = `${currentAddress.neighborhood}`;
   addressDiv.innerText = text;
 }
